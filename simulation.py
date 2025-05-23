@@ -31,12 +31,13 @@ def main():
 
     user_attributes = data.get("user_attributes", [])
     products = data.get("products", [])
+    category = data.get("category")
 
     if not user_attributes or not products:
         print("Invalid benchmark entry format: missing 'user_attributes' or 'products'.")
         sys.exit(1)
 
-    recommendation = llm_b_interact(products, user_attributes, llm_b_model)
+    recommendation = llm_b_interact(products, user_attributes, category, llm_b_model)
     print("\nLLM B: " + recommendation)
 
     correct = data.get("correct_product", {})

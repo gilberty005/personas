@@ -13,7 +13,7 @@ def llm_a_respond(user_attributes, question):
     prompt = f"""You are simulating a user with the following attributes describing their preferences:
 {json.dumps(user_attributes, indent=2)}
 
-Answer the following question as this user would, in a short, natural language sentence:
+Answer the following question as this user would, providing exactly one attribute and its value in a short sentence:
 
 Question: {question}
 
@@ -29,22 +29,22 @@ Answer:"""
     )
     return response.choices[0].message.content.strip()
 
-def llm_b_interact(products, user_attributes, llm_b_model="gpt-4o"):
+def llm_b_interact(products, user_attributes, category, llm_b_model="gpt-4o", num_questions=1):
     """
     LLM B interacts with LLM A iteratively to find a liked product.
     """
     # Initialize chat messages for LLM B
     messages = [
-        {"role": "system", "content": "You are a product recommender. Your goal is to ask the user questions to learn their preferences and recommend the best product from the provided list."},
-        {"role": "assistant", "content": f"The available products are:\n{json.dumps(products, indent=2)}"}
+        {"role": "system", "content": "You are a product recommender. Ask only about user preferences over product attributes; do not ask the user directly to name or pick a product by name."},
+        {"role": "assistant", "content": f"The product category is: {category}. Here are the products and their attributes:\n{json.dumps(products, indent=2)}"}
     ]
 
-    # Ask up to 5 clarifying questions
-    for _ in range(5):
+    # Ask up to num_questions clarifying questions
+    for _ in range(num_questions):
         q_resp = client.chat.completions.create(
             model=llm_b_model,
             messages=messages + [
-                {"role": "assistant", "content": "Ask one concise question to clarify the user's preference based on the conversation so far."}
+                {"role": "assistant", "content": "Ask one concise question about exactly one product attribute to clarify the user's preference based on the conversation so far."}
             ],
             temperature=0.7,
             max_tokens=100
@@ -61,7 +61,7 @@ def llm_b_interact(products, user_attributes, llm_b_model="gpt-4o"):
     rec_resp = client.chat.completions.create(
         model=llm_b_model,
         messages=messages + [
-            {"role": "assistant", "content": "Based on the conversation, recommend the single best product from the list. Provide the product details and a brief justification."}
+            {"role": "assistant", "content": "Based on the conversation, recommend the single best product from the list. If there are multiple products that fit the description (ie. you didn't have enough questions to narrow it down), randomly select one. Provide the product details and a brief justification."}
         ],
         temperature=0.7,
         max_tokens=200
